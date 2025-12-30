@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sorteio de Grupos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-card: #ffffff;
+            --text-primary: #1a1a1a;
+            --text-secondary: #666666;
+            --border: #e0e0e0;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --success: #16a34a;
+            --group-1: #3b82f6;
+            --group-2: #10b981;
+            --group-3: #f59e0b;
+            --group-4: #ef4444;
+            --group-5: #8b5cf6;
+            --group-6: #ec4899;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #121212;
+            --bg-secondary: #1e1e1e;
+            --bg-card: #252525;
+            --text-primary: #f0f0f0;
+            --text-secondary: #a0a0a0;
+            --border: #333333;
+            --accent: #3b82f6;
+            --accent-hover: #60a5fa;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2.5rem;
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+        }
+
+        .theme-toggle {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-size: 1.25rem;
+            transition: all 0.2s;
+        }
+
+        .theme-toggle:hover {
+            border-color: var(--accent);
+        }
+
+        .config-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .config-title {
+            font-size: 1rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+            color: var(--text-secondary);
+        }
+
+        .config-row {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .config-item {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .config-item label {
+            display: block;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+        }
+
+        .config-item input[type="number"] {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            transition: border-color 0.2s;
+        }
+
+        .config-item input[type="number"]:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .names-section {
+            margin-top: 1rem;
+        }
+
+        .names-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 0.75rem;
+            margin-top: 0.75rem;
+        }
+
+        .name-input {
+            padding: 0.625rem 0.875rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            transition: border-color 0.2s;
+        }
+
+        .name-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .name-input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .groups-names {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 1rem;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        .btn-secondary {
+            padding: 0.75rem 1.5rem;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .results-section {
+            margin-top: 2rem;
+            display: none;
+        }
+
+        .results-section.visible {
+            display: block;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .results-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .groups-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .group-card {
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .group-card[data-group="1"] { border-top-color: var(--group-1); }
+        .group-card[data-group="2"] { border-top-color: var(--group-2); }
+        .group-card[data-group="3"] { border-top-color: var(--group-3); }
+        .group-card[data-group="4"] { border-top-color: var(--group-4); }
+        .group-card[data-group="5"] { border-top-color: var(--group-5); }
+        .group-card[data-group="6"] { border-top-color: var(--group-6); }
+
+        .group-header {
+            padding: 1rem;
+            font-weight: 600;
+            font-size: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .group-card[data-group="1"] .group-header { background: var(--group-1); color: white; }
+        .group-card[data-group="2"] .group-header { background: var(--group-2); color: white; }
+        .group-card[data-group="3"] .group-header { background: var(--group-3); color: white; }
+        .group-card[data-group="4"] .group-header { background: var(--group-4); color: white; }
+        .group-card[data-group="5"] .group-header { background: var(--group-5); color: white; }
+        .group-card[data-group="6"] .group-header { background: var(--group-6); color: white; }
+
+        .group-members {
+            padding: 0.5rem;
+        }
+
+        .member {
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            margin: 0.25rem 0;
+            background: var(--bg-secondary);
+            font-size: 0.95rem;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+
+        .action-buttons .btn-secondary {
+            flex: 1;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 1.5rem 1rem;
+            }
+
+            h1 {
+                font-size: 1.4rem;
+            }
+
+            .config-row {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .names-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Sorteio de Grupos</h1>
+            <button class="theme-toggle" onclick="toggleTheme()" title="Alternar tema">🌙</button>
+        </header>
+
+        <div class="config-section">
+            <div class="config-title">Configuração</div>
+            <div class="config-row">
+                <div class="config-item">
+                    <label for="numParticipants">Número de participantes</label>
+                    <input type="number" id="numParticipants" value="12" min="2" max="100" onchange="updateInputs()">
+                </div>
+                <div class="config-item">
+                    <label for="numGroups">Número de grupos</label>
+                    <input type="number" id="numGroups" value="3" min="1" max="20" onchange="updateInputs()">
+                </div>
+            </div>
+
+            <div class="names-section">
+                <div class="config-title">Nomes dos Participantes</div>
+                <div class="names-grid" id="participantsGrid"></div>
+            </div>
+
+            <div class="groups-names">
+                <div class="config-title">Nomes dos Grupos</div>
+                <div class="names-grid" id="groupsGrid"></div>
+            </div>
+        </div>
+
+        <button class="btn-primary" onclick="sortear()">Sortear</button>
+
+        <div class="results-section" id="resultsSection">
+            <div class="results-header">
+                <div class="results-title">Resultado do Sorteio</div>
+            </div>
+            <div class="groups-container" id="groupsContainer"></div>
+            <div class="action-buttons">
+                <button class="btn-secondary" onclick="sortear()">Sortear Novamente</button>
+                <button class="btn-secondary" onclick="copiarResultado()">Copiar Resultado</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function initTheme() {
+            const saved = localStorage.getItem('theme');
+            if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                document.querySelector('.theme-toggle').textContent = '☀️';
+            }
+        }
+
+        function toggleTheme() {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
+            document.querySelector('.theme-toggle').textContent = isDark ? '🌙' : '☀️';
+            localStorage.setItem('theme', isDark ? 'light' : 'dark');
+        }
+
+        function updateInputs() {
+            const numParticipants = parseInt(document.getElementById('numParticipants').value) || 12;
+            const numGroups = parseInt(document.getElementById('numGroups').value) || 3;
+
+            const participantsGrid = document.getElementById('participantsGrid');
+            const currentParticipants = Array.from(participantsGrid.querySelectorAll('input')).map(i => i.value);
+            
+            participantsGrid.innerHTML = '';
+            for (let i = 0; i < numParticipants; i++) {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'name-input';
+                input.placeholder = `Participante ${i + 1}`;
+                input.value = currentParticipants[i] || '';
+                participantsGrid.appendChild(input);
+            }
+
+            const groupsGrid = document.getElementById('groupsGrid');
+            const currentGroups = Array.from(groupsGrid.querySelectorAll('input')).map(i => i.value);
+            
+            groupsGrid.innerHTML = '';
+            for (let i = 0; i < numGroups; i++) {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'name-input';
+                input.placeholder = `Grupo ${i + 1}`;
+                input.value = currentGroups[i] || '';
+                groupsGrid.appendChild(input);
+            }
+        }
+
+        function shuffle(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function sortear() {
+            const participantInputs = document.querySelectorAll('#participantsGrid input');
+            const groupInputs = document.querySelectorAll('#groupsGrid input');
+
+            const participants = Array.from(participantInputs).map((input, i) => 
+                input.value.trim() || `Participante ${i + 1}`
+            );
+
+            const groups = Array.from(groupInputs).map((input, i) => 
+                input.value.trim() || `Grupo ${i + 1}`
+            );
+
+            const shuffled = shuffle(participants);
+            const numGroups = groups.length;
+            const groupArrays = Array.from({ length: numGroups }, () => []);
+
+            shuffled.forEach((participant, i) => {
+                groupArrays[i % numGroups].push(participant);
+            });
+
+            const container = document.getElementById('groupsContainer');
+            container.innerHTML = '';
+
+            groups.forEach((groupName, i) => {
+                const card = document.createElement('div');
+                card.className = 'group-card';
+                card.setAttribute('data-group', (i % 6) + 1);
+
+                const header = document.createElement('div');
+                header.className = 'group-header';
+                header.textContent = groupName;
+
+                const members = document.createElement('div');
+                members.className = 'group-members';
+
+                groupArrays[i].forEach(member => {
+                    const memberDiv = document.createElement('div');
+                    memberDiv.className = 'member';
+                    memberDiv.textContent = member;
+                    members.appendChild(memberDiv);
+                });
+
+                card.appendChild(header);
+                card.appendChild(members);
+                container.appendChild(card);
+            });
+
+            document.getElementById('resultsSection').classList.add('visible');
+            document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
+
+            window.lastResult = { groups, groupArrays };
+        }
+
+        function copiarResultado() {
+            if (!window.lastResult) return;
+
+            const { groups, groupArrays } = window.lastResult;
+            let text = 'RESULTADO DO SORTEIO\n';
+            text += '═'.repeat(30) + '\n\n';
+
+            groups.forEach((groupName, i) => {
+                text += `${groupName}\n`;
+                text += '─'.repeat(20) + '\n';
+                groupArrays[i].forEach(member => {
+                    text += `• ${member}\n`;
+                });
+                text += '\n';
+            });
+
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.querySelector('.action-buttons .btn-secondary:last-child');
+                const original = btn.textContent;
+                btn.textContent = '✓ Copiado!';
+                setTimeout(() => btn.textContent = original, 2000);
+            });
+        }
+
+        initTheme();
+        updateInputs();
+    </script>
+</body>
+</html>

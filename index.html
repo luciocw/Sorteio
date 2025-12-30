@@ -157,6 +157,30 @@
             margin-top: 1rem;
         }
 
+        .names-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .paste-btn {
+            font-size: 0.8rem;
+            padding: 0.4rem 0.75rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .paste-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
         .names-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -210,6 +234,11 @@
             transform: scale(0.98);
         }
 
+        .btn-primary:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
         .btn-secondary {
             padding: 0.75rem 1.5rem;
             background: var(--bg-secondary);
@@ -258,6 +287,9 @@
             border: 2px solid var(--border);
             border-radius: 12px;
             overflow: hidden;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.4s ease forwards;
         }
 
         .group-card[data-group="1"] { border-top-color: var(--group-1); }
@@ -297,9 +329,123 @@
             display: flex;
             gap: 0.75rem;
             margin-top: 1.5rem;
+            flex-wrap: wrap;
         }
 
         .action-buttons .btn-secondary {
+            flex: 1;
+            min-width: 100px;
+        }
+
+        /* Shuffle animation overlay */
+        .shuffle-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .shuffle-overlay.visible {
+            display: flex;
+        }
+
+        .shuffle-icon {
+            font-size: 4rem;
+            animation: shake 0.15s infinite;
+        }
+
+        .shuffle-text {
+            margin-top: 1rem;
+            font-size: 1.25rem;
+            color: white;
+            font-weight: 500;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: rotate(-15deg); }
+            50% { transform: rotate(15deg); }
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Paste modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1500;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+        }
+
+        .modal-overlay.visible {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 1.5rem;
+            width: 100%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow: auto;
+        }
+
+        .modal-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .modal-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .modal textarea {
+            width: 100%;
+            height: 200px;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        .modal textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .modal-buttons button {
             flex: 1;
         }
 
@@ -407,17 +553,23 @@
             </div>
 
             <div class="names-section">
-                <div class="config-title">Nomes dos Participantes</div>
+                <div class="names-header">
+                    <div class="config-title" style="margin-bottom: 0;">Nomes dos Participantes</div>
+                    <button class="paste-btn" onclick="openPasteModal('participants')">📋 Colar lista</button>
+                </div>
                 <div class="names-grid" id="participantsGrid"></div>
             </div>
 
             <div class="groups-names">
-                <div class="config-title">Nomes dos Grupos</div>
+                <div class="names-header">
+                    <div class="config-title" style="margin-bottom: 0;">Nomes dos Grupos</div>
+                    <button class="paste-btn" onclick="openPasteModal('groups')">📋 Colar lista</button>
+                </div>
                 <div class="names-grid" id="groupsGrid"></div>
             </div>
         </div>
 
-        <button class="btn-primary" onclick="sortear()">Sortear</button>
+        <button class="btn-primary" id="sortearBtn" onclick="sortear()">Sortear</button>
 
         <div class="results-section" id="resultsSection">
             <div class="results-header">
@@ -426,7 +578,27 @@
             <div class="groups-container" id="groupsContainer"></div>
             <div class="action-buttons">
                 <button class="btn-secondary" onclick="sortear()">Sortear Novamente</button>
-                <button class="btn-secondary" onclick="copiarResultado()">Copiar Resultado</button>
+                <button class="btn-secondary" onclick="copiarResultado()">Copiar</button>
+                <button class="btn-secondary" onclick="compartilharResultado()">Compartilhar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shuffle animation overlay -->
+    <div class="shuffle-overlay" id="shuffleOverlay">
+        <div class="shuffle-icon">🎲</div>
+        <div class="shuffle-text">Sorteando...</div>
+    </div>
+
+    <!-- Paste modal -->
+    <div class="modal-overlay" id="pasteModal">
+        <div class="modal">
+            <div class="modal-title">Colar Lista</div>
+            <div class="modal-subtitle">Cole os nomes separados por vírgula, ponto-e-vírgula ou um por linha</div>
+            <textarea id="pasteTextarea" placeholder="João, Maria, Pedro&#10;ou&#10;João&#10;Maria&#10;Pedro"></textarea>
+            <div class="modal-buttons">
+                <button class="btn-secondary" onclick="closePasteModal()">Cancelar</button>
+                <button class="btn-primary" onclick="applyPastedList()">Aplicar</button>
             </div>
         </div>
     </div>
@@ -444,6 +616,8 @@
     </div>
 
     <script>
+        let currentPasteTarget = 'participants';
+
         // Theme management
         function initTheme() {
             const saved = localStorage.getItem('theme');
@@ -492,6 +666,49 @@
             }
         }
 
+        // Paste modal
+        function openPasteModal(target) {
+            currentPasteTarget = target;
+            document.getElementById('pasteTextarea').value = '';
+            document.getElementById('pasteModal').classList.add('visible');
+            document.getElementById('pasteTextarea').focus();
+        }
+
+        function closePasteModal() {
+            document.getElementById('pasteModal').classList.remove('visible');
+        }
+
+        function applyPastedList() {
+            const text = document.getElementById('pasteTextarea').value;
+            const names = text
+                .split(/[,;\n]+/)
+                .map(n => n.trim())
+                .filter(n => n.length > 0);
+
+            if (names.length === 0) {
+                closePasteModal();
+                return;
+            }
+
+            if (currentPasteTarget === 'participants') {
+                document.getElementById('numParticipants').value = names.length;
+                updateInputs();
+                const inputs = document.querySelectorAll('#participantsGrid input');
+                names.forEach((name, i) => {
+                    if (inputs[i]) inputs[i].value = name;
+                });
+            } else {
+                document.getElementById('numGroups').value = names.length;
+                updateInputs();
+                const inputs = document.querySelectorAll('#groupsGrid input');
+                names.forEach((name, i) => {
+                    if (inputs[i]) inputs[i].value = name;
+                });
+            }
+
+            closePasteModal();
+        }
+
         // Shuffle function
         function shuffle(array) {
             const arr = [...array];
@@ -502,8 +719,32 @@
             return arr;
         }
 
-        // Main draw function
+        // Vibration feedback
+        function vibrate() {
+            if ('vibrate' in navigator) {
+                navigator.vibrate([50, 30, 50]);
+            }
+        }
+
+        // Main draw function with animation
         function sortear() {
+            const btn = document.getElementById('sortearBtn');
+            btn.disabled = true;
+
+            // Show shuffle animation
+            document.getElementById('shuffleOverlay').classList.add('visible');
+            vibrate();
+
+            // Simulate shuffling delay for effect
+            setTimeout(() => {
+                document.getElementById('shuffleOverlay').classList.remove('visible');
+                performDraw();
+                btn.disabled = false;
+                vibrate();
+            }, 800);
+        }
+
+        function performDraw() {
             const participantInputs = document.querySelectorAll('#participantsGrid input');
             const groupInputs = document.querySelectorAll('#groupsGrid input');
 
@@ -530,6 +771,7 @@
                 const card = document.createElement('div');
                 card.className = 'group-card';
                 card.setAttribute('data-group', (i % 6) + 1);
+                card.style.animationDelay = `${i * 0.1}s`;
 
                 const header = document.createElement('div');
                 header.className = 'group-header';
@@ -556,29 +798,55 @@
             window.lastResult = { groups, groupArrays };
         }
 
-        // Copy result function
-        function copiarResultado() {
-            if (!window.lastResult) return;
+        // Generate result text
+        function getResultText() {
+            if (!window.lastResult) return '';
 
             const { groups, groupArrays } = window.lastResult;
-            let text = 'RESULTADO DO SORTEIO\n';
-            text += '═'.repeat(30) + '\n\n';
+            let text = '🎲 RESULTADO DO SORTEIO\n';
+            text += '━'.repeat(25) + '\n\n';
 
             groups.forEach((groupName, i) => {
-                text += `${groupName}\n`;
-                text += '─'.repeat(20) + '\n';
+                text += `📌 ${groupName}\n`;
                 groupArrays[i].forEach(member => {
-                    text += `• ${member}\n`;
+                    text += `   • ${member}\n`;
                 });
                 text += '\n';
             });
 
+            return text.trim();
+        }
+
+        // Copy result function
+        function copiarResultado() {
+            const text = getResultText();
+            if (!text) return;
+
             navigator.clipboard.writeText(text).then(() => {
-                const btn = document.querySelector('.action-buttons .btn-secondary:last-child');
+                const btn = document.querySelector('.action-buttons .btn-secondary:nth-child(2)');
                 const original = btn.textContent;
                 btn.textContent = '✓ Copiado!';
                 setTimeout(() => btn.textContent = original, 2000);
             });
+        }
+
+        // Share result function (native share)
+        function compartilharResultado() {
+            const text = getResultText();
+            if (!text) return;
+
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Resultado do Sorteio',
+                    text: text
+                }).catch(() => {
+                    // User cancelled or error - fallback to copy
+                    copiarResultado();
+                });
+            } else {
+                // Fallback for browsers without Web Share API
+                copiarResultado();
+            }
         }
 
         // iOS install prompt
@@ -599,10 +867,15 @@
             localStorage.setItem('installPromptDismissed', 'true');
         }
 
+        // Close modal on overlay click
+        document.getElementById('pasteModal').addEventListener('click', function(e) {
+            if (e.target === this) closePasteModal();
+        });
+
         // Service Worker registration
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('data:text/javascript;charset=utf-8,' + encodeURIComponent(`
-                const CACHE_NAME = 'sorteio-v1';
+                const CACHE_NAME = 'sorteio-v2';
                 self.addEventListener('install', e => self.skipWaiting());
                 self.addEventListener('activate', e => e.waitUntil(clients.claim()));
                 self.addEventListener('fetch', e => {

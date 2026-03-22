@@ -479,6 +479,91 @@
             }
         }
 
+        /* Schedule section */
+        .schedule-round {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.4s ease forwards;
+        }
+
+        .round-header {
+            padding: 0.75rem 1rem;
+            font-weight: 600;
+            font-size: 0.95rem;
+            background: var(--accent);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .round-header.phase3 {
+            background: var(--group-3);
+        }
+
+        .round-phase-tag {
+            font-size: 0.75rem;
+            font-weight: 400;
+            opacity: 0.85;
+        }
+
+        .round-games {
+            padding: 0.5rem;
+        }
+
+        .game-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            margin: 0.25rem 0;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            gap: 0.5rem;
+        }
+
+        .game-team {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .game-team:first-child {
+            text-align: right;
+        }
+
+        .game-team:last-child {
+            text-align: left;
+        }
+
+        .game-vs {
+            font-weight: 600;
+            color: var(--text-secondary);
+            flex-shrink: 0;
+        }
+
+        .phase3-note {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-style: italic;
+            padding: 0.5rem 1rem;
+            text-align: center;
+        }
+
+        .schedule-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            margin-top: 0.5rem;
+        }
+
         /* Install prompt */
         .install-prompt {
             display: none;
@@ -581,6 +666,15 @@
                 <button class="btn-secondary" onclick="copiarResultado()">Copiar</button>
                 <button class="btn-secondary" onclick="compartilharResultado()">Compartilhar</button>
             </div>
+
+            <div id="scheduleSection" style="display:none; margin-top: 2rem;">
+                <button class="btn-primary" onclick="gerarCalendario()">Gerar Calendario</button>
+                <div id="scheduleContainer" style="margin-top: 1rem;"></div>
+                <div class="action-buttons" id="scheduleActions" style="display:none;">
+                    <button class="btn-secondary" id="copiarCalendarioBtn" onclick="copiarCalendario()">Copiar Calendario</button>
+                    <button class="btn-secondary" onclick="compartilharCalendario()">Compartilhar</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -617,6 +711,40 @@
 
     <script>
         let currentPasteTarget = 'participants';
+
+        // League schedule template — 12 rounds per block (X=group1, Y=group2 of pair)
+        // Each round has 3 games: mix of intra-group (i) and cross-group (c)
+        // 't' = type, 'g' = group ('X' or 'Y'), 'a'/'b' = team indices within group
+        // Template verified: each intra pair 3x, each cross pair 2x, no team plays twice per round
+        const BLOCK_TEMPLATE = [
+            // R1  (M): X0-X1, Y0-Y1, X2-Y2
+            [{t:'i',g:'X',a:0,b:1}, {t:'i',g:'Y',a:0,b:1}, {t:'c',a:2,b:2}],
+            // R2  (M): X0-X2, Y0-Y2, X1-Y1
+            [{t:'i',g:'X',a:0,b:2}, {t:'i',g:'Y',a:0,b:2}, {t:'c',a:1,b:1}],
+            // R3  (M): X1-X2, Y1-Y2, X0-Y0
+            [{t:'i',g:'X',a:1,b:2}, {t:'i',g:'Y',a:1,b:2}, {t:'c',a:0,b:0}],
+            // R4 (FC): X0-Y0, X1-Y1, X2-Y2
+            [{t:'c',a:0,b:0}, {t:'c',a:1,b:1}, {t:'c',a:2,b:2}],
+            // R5  (M): X0-X1, Y0-Y2, X2-Y1 (idle X2, idle Y1)
+            [{t:'i',g:'X',a:0,b:1}, {t:'i',g:'Y',a:0,b:2}, {t:'c',a:2,b:1}],
+            // R6  (M): X0-X2, Y1-Y2, X1-Y0 (idle X1, idle Y0)
+            [{t:'i',g:'X',a:0,b:2}, {t:'i',g:'Y',a:1,b:2}, {t:'c',a:1,b:0}],
+            // R7  (M): X1-X2, Y0-Y1, X0-Y2 (idle X0, idle Y2)
+            [{t:'i',g:'X',a:1,b:2}, {t:'i',g:'Y',a:0,b:1}, {t:'c',a:0,b:2}],
+            // R8 (FC): X0-Y1, X1-Y2, X2-Y0
+            [{t:'c',a:0,b:1}, {t:'c',a:1,b:2}, {t:'c',a:2,b:0}],
+            // R9  (M): X0-X1, Y1-Y2, X2-Y0 (idle X2, idle Y0)
+            [{t:'i',g:'X',a:0,b:1}, {t:'i',g:'Y',a:1,b:2}, {t:'c',a:2,b:0}],
+            // R10 (M): X0-X2, Y0-Y1, X1-Y2 (idle X1, idle Y2)
+            [{t:'i',g:'X',a:0,b:2}, {t:'i',g:'Y',a:0,b:1}, {t:'c',a:1,b:2}],
+            // R11 (M): X1-X2, Y0-Y2, X0-Y1 (idle X0, idle Y1)
+            [{t:'i',g:'X',a:1,b:2}, {t:'i',g:'Y',a:0,b:2}, {t:'c',a:0,b:1}],
+            // R12 (FC): X0-Y2, X1-Y0, X2-Y1
+            [{t:'c',a:0,b:2}, {t:'c',a:1,b:0}, {t:'c',a:2,b:1}],
+        ];
+
+        const GROUP_PAIRS = [{x: 0, y: 1}, {x: 2, y: 3}];
+        const POSITION_LABELS = ['1o', '2o', '3o'];
 
         // Theme management
         function initTheme() {
@@ -796,6 +924,17 @@
             document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
 
             window.lastResult = { groups, groupArrays };
+
+            // Show schedule button when league format (4 groups of 3)
+            const scheduleSection = document.getElementById('scheduleSection');
+            if (groups.length === 4 && groupArrays.every(g => g.length === 3)) {
+                scheduleSection.style.display = 'block';
+                document.getElementById('scheduleContainer').innerHTML = '';
+                document.getElementById('scheduleActions').style.display = 'none';
+            } else {
+                scheduleSection.style.display = 'none';
+            }
+            window.lastSchedule = null;
         }
 
         // Generate result text
@@ -846,6 +985,173 @@
             } else {
                 // Fallback for browsers without Web Share API
                 copiarResultado();
+            }
+        }
+
+        // Schedule generation
+        function generateSchedule(groupArrays, groupNames) {
+            const rounds = [];
+
+            for (let r = 0; r < 12; r++) {
+                const games = [];
+                const template = BLOCK_TEMPLATE[r];
+
+                for (const block of GROUP_PAIRS) {
+                    for (const slot of template) {
+                        if (slot.t === 'i') {
+                            const gi = slot.g === 'X' ? block.x : block.y;
+                            games.push({
+                                home: groupArrays[gi][slot.a],
+                                away: groupArrays[gi][slot.b],
+                                type: 'intra',
+                            });
+                        } else {
+                            games.push({
+                                home: groupArrays[block.x][slot.a],
+                                away: groupArrays[block.y][slot.b],
+                                type: 'cross',
+                            });
+                        }
+                    }
+                }
+
+                rounds.push({ number: r + 1, games, phase: 'Fase 1-2' });
+            }
+
+            // Phase 3 — cross-pair by standing (positional templates)
+            const phase3Templates = [
+                // Round 13: A vs C, B vs D
+                [{pos:0,gx:0,gy:2},{pos:0,gx:1,gy:3},{pos:1,gx:0,gy:2},{pos:1,gx:1,gy:3},{pos:2,gx:0,gy:2},{pos:2,gx:1,gy:3}],
+                // Round 14: A vs D, B vs C
+                [{pos:0,gx:0,gy:3},{pos:0,gx:1,gy:2},{pos:1,gx:0,gy:3},{pos:1,gx:1,gy:2},{pos:2,gx:0,gy:3},{pos:2,gx:1,gy:2}],
+            ];
+
+            for (let r = 0; r < 2; r++) {
+                const games = phase3Templates[r].map(m => ({
+                    home: `${POSITION_LABELS[m.pos]} ${groupNames[m.gx]}`,
+                    away: `${POSITION_LABELS[m.pos]} ${groupNames[m.gy]}`,
+                    type: 'phase3',
+                }));
+                rounds.push({ number: 13 + r, games, phase: 'Fase 3' });
+            }
+
+            return rounds;
+        }
+
+        function renderSchedule(schedule) {
+            const container = document.getElementById('scheduleContainer');
+            container.innerHTML = '';
+
+            const title = document.createElement('div');
+            title.className = 'schedule-title';
+            title.textContent = 'Calendario da Liga';
+            container.appendChild(title);
+
+            for (const round of schedule) {
+                const roundDiv = document.createElement('div');
+                roundDiv.className = 'schedule-round';
+                roundDiv.style.animationDelay = `${(round.number - 1) * 0.05}s`;
+
+                const header = document.createElement('div');
+                header.className = 'round-header' + (round.phase === 'Fase 3' ? ' phase3' : '');
+                header.innerHTML = `<span>Rodada ${round.number}</span><span class="round-phase-tag">${round.phase}</span>`;
+                roundDiv.appendChild(header);
+
+                if (round.phase === 'Fase 3') {
+                    const note = document.createElement('div');
+                    note.className = 'phase3-note';
+                    note.textContent = 'Jogos definidos pela classificacao apos rodada 12';
+                    roundDiv.appendChild(note);
+                }
+
+                const gamesDiv = document.createElement('div');
+                gamesDiv.className = 'round-games';
+
+                for (const game of round.games) {
+                    const row = document.createElement('div');
+                    row.className = 'game-row';
+
+                    const homeSpan = document.createElement('span');
+                    homeSpan.className = 'game-team';
+                    homeSpan.textContent = game.home;
+
+                    const vsSpan = document.createElement('span');
+                    vsSpan.className = 'game-vs';
+                    vsSpan.textContent = 'vs';
+
+                    const awaySpan = document.createElement('span');
+                    awaySpan.className = 'game-team';
+                    awaySpan.textContent = game.away;
+
+                    row.appendChild(homeSpan);
+                    row.appendChild(vsSpan);
+                    row.appendChild(awaySpan);
+                    gamesDiv.appendChild(row);
+                }
+
+                roundDiv.appendChild(gamesDiv);
+                container.appendChild(roundDiv);
+            }
+
+            document.getElementById('scheduleActions').style.display = 'flex';
+            container.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function gerarCalendario() {
+            const { groups, groupArrays } = window.lastResult;
+
+            if (groups.length !== 4 || groupArrays.some(g => g.length !== 3)) {
+                return;
+            }
+
+            const schedule = generateSchedule(groupArrays, groups);
+            renderSchedule(schedule);
+            window.lastSchedule = schedule;
+            vibrate();
+        }
+
+        function getScheduleText() {
+            if (!window.lastSchedule) return '';
+
+            let text = '📅 CALENDARIO DA LIGA\n';
+            text += '━'.repeat(30) + '\n\n';
+
+            for (const round of window.lastSchedule) {
+                text += `── Rodada ${round.number} (${round.phase}) ──\n`;
+                if (round.phase === 'Fase 3') {
+                    text += '  (Definido pela classificacao)\n';
+                }
+                for (const game of round.games) {
+                    text += `  ${game.home}  vs  ${game.away}\n`;
+                }
+                text += '\n';
+            }
+            return text.trim();
+        }
+
+        function copiarCalendario() {
+            const text = getScheduleText();
+            if (!text) return;
+
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.getElementById('copiarCalendarioBtn');
+                const original = btn.textContent;
+                btn.textContent = '✓ Copiado!';
+                setTimeout(() => btn.textContent = original, 2000);
+            });
+        }
+
+        function compartilharCalendario() {
+            const text = getScheduleText();
+            if (!text) return;
+
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Calendario da Liga',
+                    text: text
+                }).catch(() => copiarCalendario());
+            } else {
+                copiarCalendario();
             }
         }
 
